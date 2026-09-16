@@ -6,99 +6,87 @@ methods) is far too large to read as a reference file. Call this to pull only th
 slice needed for the task at hand.
 
 Usage:
-  python scripts/lookup.py session <Entity>     # how to get/create one
-  python scripts/lookup.py class <Entity>       # fields + methods once you have one
-  python scripts/lookup.py search <substring>   # find entities by name
-  python scripts/lookup.py methods <substring>  # find SchedulerSession methods
+  python lookup.py class JobDefinition      # fields, methods, supertypes
+  python lookup.py find '*chain*'           # entities matching pattern
+  python lookup.py session getJob*          # SchedulerSession methods
+  python lookup.py related Job              # relations from/to an entity
 """
 
+import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "assets" / "model.json"
+MODEL = Path(__file__).resolve().parent.parent / "assets" / "model.json"
 
-def load_model():
-    with open(MODEL_PATH, encoding="utf-8") as f:
+def load():
+    with open(MODEL, encoding="utf-8") as f:
         return json.load(f)
 
-def cmd_session(model, entity):
-    """Print SchedulerSession methods that return or create the entity."""
-    methods = model.get("session_methods", {})
-    hits = []
-    for name, info in methods.items():
-        ret = info.get("returns", "")
-        if entity.lower() in ret.lower() or entity.lower() in name.lower():
-            hits.append((name, info))
-    if not hits:
-        print(f"No session methods found for {entity}")
-        return
-    for name, info in sorted(hits):
-        print(f"{name}{info.get('signature', '()')}")
-        if info.get("doc"):
-            print(f"  {info['doc'][:200]}")
+def main():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("command", choices=["class", "find", "session", "related"])
+    p.add_argument("query", help="Entity name, pattern, or method prefix")
+    args = p.parse_args()
+    model = load()
 
-def cmd_class(model, entity):
-    """Print fields and methods of the entity class."""
-    classes = model.get("classes", {})
-    # fuzzy match
-    key = None
-    for k in classes:
-        if k.lower() == entity.lower():
-            key = k
-            break
-    if not key:
+    if args.command == "class":
+        classes = model.get("classes", {})
+        key = None
         for k in classes:
-            if entity.lower() in k.lower():
+            if k.lower() == args.query.lower():
                 key = k
                 break
-    if not key:
-        print(f"Entity not found: {entity}")
-        return
-    cls = classes[key]
-    print(f"=== {key} ===")
-    if cls.get("extends"):
-        print(f"extends: {', '.join(cls['extends'])}")
-    print("\nFields:")
-    for f in cls.get("fields", []):
-        t = f.get("type", "?")
-        ref = " (ref)" if f.get("ref") else ""
-        print(f"  {f['name']}: {t}{ref}")
-    print("\nMethods:")
-    for m in cls.get("methods", []):
-        print(f"  {m.get('name', '?')}{m.get('signature', '()')}")
+        if not key:
+            for k in classes:
+                if args.query.lower() in k.lower():
+                    key = k
+                    break
+        if not key:
+            print(f"No class matching {args.query!r}")
+            sys.exit(1)
+        cls = classes[key]
+        print(f"=== {key} ===")
+        if cls.get("extends"):
+            print("extends:", ", ".join(cls["extends"]))
+        print("\nFields:")
+        for f in cls.get("fields", []):
+            extra = " (ref)" if f.get("ref") else ""
+            print(f"  {f['name']}: {f.get('type', '?')}{extra}")
+        print("\nMethods:")
+        for m in cls.get("methods", []):
+            print(f"  {m.get('name')}{m.get('signature', '()')}")
 
-def cmd_search(model, substr):
-    classes = model.get("classes", {})
-    hits = [k for k in classes if substr.lower() in k.lower()]
-    for h in sorted(hits):
-        print(h)
+    elif args.command == "find":
+        pat = args.query.replace("*", ".*")
+        rx = re.compile(pat, re.I)
+        for name in sorted(model.get("classes", {})):
+            if rx.search(name):
+                print(name)
 
-def cmd_methods(model, substr):
-    methods = model.get("session_methods", {})
-    hits = [(n, i) for n, i in methods.items() if substr.lower() in n.lower()]
-    for name, info in sorted(hits):
-        print(f"{name}{info.get('signature', '()')}")
+    elif args.command == "session":
+        methods = model.get("session_methods", {})
+        q = args.query.lower()
+        for name, info in sorted(methods.items()):
+            if q in name.lower() or q in str(info.get("returns", "")).lower():
+                print(f"{name}{info.get('signature', '()')} -> {info.get('returns', '?')}")
 
-def main():
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(1)
-    cmd = sys.argv[1].lower()
-    arg = sys.argv[2]
-    model = load_model()
-    if cmd == "session":
-        cmd_session(model, arg)
-    elif cmd == "class":
-        cmd_class(model, arg)
-    elif cmd == "search":
-        cmd_search(model, arg)
-    elif cmd == "methods":
-        cmd_methods(model, arg)
-    else:
-        print(f"Unknown command: {cmd}")
-        print(__doc__)
-        sys.exit(1)
+    elif args.command == "related":
+        classes = model.get("classes", {})
+        key = None
+        for k in classes:
+            if k.lower() == args.query.lower():
+                key = k
+                break
+        if not key:
+            print(f"No class matching {args.query!r}")
+            sys.exit(1)
+        rels = classes[key].get("relations", [])
+        if not rels:
+            print("(no relations listed)")
+        for r in rels:
+            print(f"  {r.get('name')} -> {r.get('relates_to')} ({r.get('verb', '')})")
 
 if __name__ == "__main__":
     main()
