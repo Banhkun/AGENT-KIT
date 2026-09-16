@@ -1,0 +1,32 @@
+AGENT-KIT
+Copyright (c) 2026 Banhkun and contributors.
+
+This product includes software and prompt-engineering materials developed by
+Anthropic, PBC (https://www.anthropic.com/) as part of the claude-plugins-official
+repository, licensed under the Apache License, Version 2.0.
+
+Original works:
+Copyright (c) 2025-2026 Anthropic, PBC.
+
+Adapted skills derived from or inspired by Anthropic claude-plugins-official:
+- skills/code-architect (derived from feature-dev agents)
+- skills/code-explorer (derived from feature-dev agents)
+- skills/code-reviewer (derived from code-review plugin)
+- skills/code-simplifier (derived from code-simplifier plugin)
+- skills/commit-commands (derived from commit-commands plugin)
+- skills/feature-dev (derived from feature-dev plugin)
+- skills/skill-creator (derived from skill-creator plugin)
+
+Other skills (rel-generator, runmyjobs-redwood-query, runmyjobs-redwood-script,
+skill-drive-upload) are independently created community tools.
+
+TRADEMARK & NON-AFFILIATION DISCLAIMER:
+- "Anthropic", "Claude", and "Claude Code" are trademarks of Anthropic, PBC.
+- "RunMyJobs", "Redwood", and "RedwoodScript" are trademarks of Redwood Software.
+- "UC4" and "Automic" are trademarks of Broadcom Inc.
+- "Google Drive" is a trademark of Google LLC.
+
+This project is an independent open-source initiative. It is NOT affiliated with,
+endorsed by, sponsored by, or associated with Anthropic, Redwood Software,
+Broadcom, Google, or any past/present employers of the contributors.
+All trademarks and registered trademarks are the property of their respective owners.
