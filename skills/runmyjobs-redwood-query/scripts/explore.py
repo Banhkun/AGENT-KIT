@@ -309,6 +309,19 @@ def cmd_check(model, args):
             "  This may include uncommitted draft branches. Add 'jd.BranchedLLPVersion = -1' to select current master definitions."
         )
 
+    # 3b. Check for unsupported scalar string functions
+    unsupported_funcs = ["LENGTH", "SUBSTRING", "CHAR_LENGTH", "SUBSTR", "TRIM", "CONCAT"]
+    for func in unsupported_funcs:
+        if re.search(rf"\b{func}\s*\(", sql, re.IGNORECASE):
+            warnings.append(
+                f"[CRITICAL] '{func}(...)' is not supported by Redwood's Object Query engine (\"length is not allowed\").\n"
+                f"  For length filtering, use LIKE with underscore wildcards instead, e.g.:\n"
+                f"    At least N chars: WHERE col LIKE '{'_' * 5}...{'_' * 0}%'  (N underscores + %)\n"
+                f"    At most N chars:  WHERE col NOT LIKE '{'_' * 6}...%'  ((N+1) underscores + %, watch NULLs)\n"
+                f"    Exactly N chars:  WHERE col LIKE '{'_' * 5}...'  (N underscores, no %)\n"
+                f"  See references/sql-syntax-and-rules.md section 8."
+            )
+
     # 4. Check MasterJobDefinition for tag/sibling queries
     if "ObjectTag" in sql and "JobDefinition" in sql and "MasterJobDefinition" not in sql:
         warnings.append(
