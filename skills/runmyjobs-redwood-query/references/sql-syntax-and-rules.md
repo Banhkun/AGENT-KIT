@@ -140,7 +140,38 @@ WHERE jd.LastModificationTime > NOW('set hour 0 subtract 365 days')
 
 ---
 
-## 8. ORDER BY with Column Aliases (ORA-00918 Prevention)
+## 8. No Scalar String Functions — Filtering by Length via `LIKE`
+
+Redwood's Object Query engine does **not** support scalar SQL functions like `LENGTH()`, `SUBSTRING()`, `CHAR_LENGTH()`, etc. Attempting to use them fails ("length is not allowed").
+
+To filter by the length of a string column (e.g. `jd.Comment`), use `LIKE` with underscore (`_`) wildcards, since each `_` matches exactly one character and `%` matches zero or more characters:
+
+- **At least N characters:** `LIKE` a pattern of N underscores followed by `%`.
+  ```sql
+  -- Comment has at least 40 characters
+  WHERE jd.Comment LIKE '________________________________________%'  -- 40 underscores + %
+  ```
+- **At most N characters:** `NOT LIKE` a pattern of (N+1) underscores followed by `%` — i.e. exclude anything with N+1 or more characters.
+  ```sql
+  -- Comment has at most 40 characters
+  WHERE jd.Comment NOT LIKE '_________________________________________%'  -- 41 underscores + %
+  ```
+  Caution: if `jd.Comment` can be `NULL`, `NULL NOT LIKE anything` evaluates to unknown/false in most dialects, silently excluding those rows. Add `OR jd.Comment IS NULL` if nulls should count as satisfying "at most N".
+- **Exactly N characters:** N underscores with **no** trailing `%` (a bare underscore pattern with no `%` must match the full string length exactly).
+  ```sql
+  WHERE jd.Comment LIKE '________________________________________'  -- exactly 40 characters
+  ```
+- **Range [N, M]:** combine both bounds.
+  ```sql
+  WHERE jd.Comment LIKE '__________%'              -- at least 10
+  AND jd.Comment NOT LIKE '___________________________________________%'  -- at most 40 (41 underscores)
+  ```
+
+Tip: count underscores programmatically rather than by eye, e.g. `'_' * 40` in Python, to avoid off-by-one errors.
+
+---
+
+## 9. ORDER BY with Column Aliases (ORA-00918 Prevention)
 
 When writing queries that project specific column aliases (e.g. `SELECT jd.Name AS JobDefinitionName`) across joined entities (such as `JobDefinition` and `JobDefinitionParameter`, both of which have a `Name` column):
 
@@ -168,7 +199,7 @@ ORDER BY JobDefinitionName, ParameterName
 
 ---
 
-## 9. Query Validation Checklist
+## 10. Query Validation Checklist
 
 Before executing an Object Query, verify:
 
@@ -178,3 +209,4 @@ Before executing an Object Query, verify:
 - [ ] Are joins matching on `.UniqueId`?
 - [ ] If querying `ObjectTag` on `JobDefinition`, is `UniqueId = MasterJobDefinition` included?
 - [ ] Are `ORDER BY` clauses using output column aliases (e.g. `ORDER BY JobDefinitionName`) instead of table-qualified column names when projection aliases are defined (prevents `ORA-00918`)?
+- [ ] Are any string-length filters using `LIKE '____%'` underscore patterns instead of unsupported functions like `LENGTH()`?

@@ -34,7 +34,12 @@ This skill bundles:
 3. **Always alias-qualify wildcards:** `SELECT jd.* FROM JobDefinition jd` (bare `SELECT *` is rejected).
 4. **All entity joins must connect via `UniqueId`** (e.g. `JOIN JobChainCall jcc ON jcc.JobDefinition = jd.UniqueId`).
 5. **Add `jd.UniqueId = jd.MasterJobDefinition`** when querying `ObjectTag` or resolving siblings to prevent duplicate rows across split/branched variants.
-6. **Order by output column aliases when using `SELECT ... AS alias` with JOINs:**
+6. **No scalar string functions (`LENGTH()`, `SUBSTRING()`, etc.) are supported.** To filter by string length, use `LIKE` with underscore wildcards instead:
+   - At least N chars: `LIKE` N underscores + `%` (e.g. `LIKE '__________%'` for ≥10).
+   - At most N chars: `NOT LIKE` (N+1) underscores + `%` (watch for `NULL` rows being excluded).
+   - Exactly N chars: N underscores with no trailing `%`.
+   See [SQL Syntax & Rules §8](file:///references/sql-syntax-and-rules.md#8-no-scalar-string-functions--filtering-by-length-via-like) for details.
+7. **Order by output column aliases when using `SELECT ... AS alias` with JOINs:**
    When projecting columns with aliases across multiple joined tables (especially columns like `Name` present in multiple entities), ordering by the raw column reference (e.g. `ORDER BY jd.Name` or `ORDER BY Name`) causes Redwood's underlying SQL generator to produce ambiguous SQL in Oracle:
    `JCS-122035: Unable to persist: ORA-00918: column ambiguously defined`.
    - ❌ WRONG: `SELECT jd.Name AS JobDefinitionName ... ORDER BY jd.Name`
