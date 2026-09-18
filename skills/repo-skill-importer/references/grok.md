@@ -50,26 +50,33 @@ Where a same-named skill exists, run a recursive diff:
 diff -rq /path/to/local/<skill-name> <extracted-repo>/skills/<skill-name>
 ```
 
-Summarize the result to the user in three buckets before installing or
-packaging anything:
+Present a clear **Comparison result** to the user (preferably a table or
+structured list) with three buckets:
 
-- **Already available, identical** — skip by default, mention as FYI.
-- **Already available, but differs** — call out exactly which files differ
-  so the user can decide whether to overwrite; skip by default unless the
-  user asks for it.
-- **Not available locally** — new to this environment; install (or package)
-  these.
+- **Already available, identical** — mention as FYI; recommend skip.
+- **Already available, but differs** — list exactly which files differ and
+  briefly describe the changes so the user can decide; recommend skip by
+  default (to protect local customizations) but offer overwrite.
+- **Not available locally** — new to this environment; recommend install.
 
-> **Hint:** Don't install or package a skill that's already available
-> locally unless the user explicitly asks (e.g. "install it anyway",
-> "give me the repo version", "update it"). Silently reinstalling risks
-> overwriting a newer or customized local version. Default to skipping
-> duplicates and only acting on what's genuinely new — say what you
-> skipped and why so the user can override.
+## 3. Ask before proceeding (mandatory interactive gate)
 
-## 3. Validate every skill
+**Stop after the Comparison result.** Do **not** install, overwrite, or
+package anything until the user explicitly confirms what to do.
 
-Before installing or packaging, validate each folder:
+Ask a clear question, for example:
+
+> Comparison complete. How would you like to proceed?
+> - Update / overwrite the differing skill(s)?
+> - Install only the new skill(s)?
+> - Skip everything?
+> - Something else (please specify)?
+
+Wait for the user's answer. Never auto-overwrite a differing skill.
+
+## 4. Validate every skill the user approved
+
+Only after confirmation, validate each approved folder:
 
 ```bash
 # Preferred if skill-creator scripts are present
@@ -81,10 +88,18 @@ bash /root/.grok/skills/skill-creator/scripts/validate-skill.sh <path-to-skill-f
 
 Report validation failures rather than silently installing a broken skill.
 
-## 4. Install new skills automatically (preferred)
+## 5. Install approved skills (preferred)
 
-For each validated skill that is **not** already available locally, install
-it directly into the persistent user skills directory:
+For each validated skill the user approved (new **or** explicitly requested
+overwrite), install it into the persistent user skills directory.
+
+If the destination already exists (overwrite case), remove it first:
+
+```bash
+rm -rf /home/workdir/.grok/skills/<skill-name>
+```
+
+Then install:
 
 ```bash
 bash /root/.grok/skills/skill-installer/scripts/install-skill.sh \
@@ -102,16 +117,15 @@ bash /root/.grok/skills/skill-installer/scripts/install-skill.sh \
   --dest /home/workdir/.grok/skills
 ```
 
-- The installer aborts if the destination already exists (safe).
-- Loop through every *new* skill — don't stop at the first one.
+- Loop through every approved skill — don't stop at the first one.
 - After successful installs, tell the user clearly that they must **start a
-  new session** for the new skills to be discovered and become available.
+  new session** for the new/updated skills to be discovered and become available.
 
 This is the preferred path because it requires no user upload or Save
 action — the skills are live in `/home/workdir/.grok/skills/` immediately
 (after a session restart).
 
-## 5. Package only when needed (fallback or explicit request)
+## 6. Package only when needed (fallback or explicit request)
 
 Use packaging instead of (or in addition to) auto-install when:
 
@@ -128,11 +142,12 @@ download mechanism available in the environment). Note that packaging ends
 at "validated and handed over" — the user still has to Save/install the
 file themselves.
 
-## 6. Deliver summary
+## 7. Deliver summary
 
 Always give a clear summary:
 
 - What was already present (identical / differing)
-- What was newly installed (and that a new session is required)
+- What the user decided
+- What was newly installed or overwritten (and that a new session is required)
 - What was packaged (if anything)
 - Any validation failures

@@ -32,22 +32,39 @@ reference fills in the environment-specific details.
    `SKILL.md`.
 
 2. **Compare against what's already available**  
-   Diff same-named skills. Bucket into: identical (skip), differs (skip
-   unless user asks), new (proceed). Always tell the user what you skipped
-   and why.
+   Diff same-named skills. Bucket into three groups:
+   - **Already available, identical**
+   - **Already available, but differs** (list exactly which files differ)
+   - **Not available locally** (new)
 
-3. **Validate every skill** you plan to deliver  
+   Present a clear **Comparison result** to the user (table or structured
+   summary) showing every skill and its bucket, plus a short description of
+   what changed for any differing skills.
+
+3. **Ask before proceeding** (mandatory interactive gate)  
+   After showing the Comparison result, **stop and ask the user** whether
+   to proceed. Do **not** install, overwrite, or package anything until the
+   user explicitly confirms.
+   - For identical skills: default recommendation is skip.
+   - For differing skills: default recommendation is skip (to protect local
+     customizations), but offer to overwrite/update if the user wants the
+     repo version.
+   - For new skills: default recommendation is install/package.
+   Wait for the user's decision (e.g. "yes, update the differing ones",
+   "install only the new ones", "overwrite all", "skip everything").
+
+4. **Validate every skill** the user approved for delivery  
    Use the environment's validator (`quick_validate.py` or
    `validate-skill.sh`). Do not deliver broken skills.
 
-4. **Deliver only what's new** (or explicitly requested)  
+5. **Deliver only what the user approved**  
    Follow the loaded reference:
    - Grok → auto-install into `/home/workdir/.grok/skills/`
    - Claude → package `.skill` files and present them
 
-5. **Summarize**  
-   What was already present, what was newly delivered, any validation
-   failures, and (for auto-install) that a new session is required.
+6. **Summarize**  
+   What was already present, what was newly delivered / overwritten, any
+   validation failures, and (for auto-install) that a new session is required.
 
 ## Notes
 
@@ -57,3 +74,5 @@ reference fills in the environment-specific details.
 - Prefer the environment-native path (auto-install on Grok, package on
   Claude). Offer the other path only if the user asks or the preferred
   path fails.
+- **Never auto-overwrite a differing skill.** Always surface the Comparison
+  result first and wait for explicit confirmation.

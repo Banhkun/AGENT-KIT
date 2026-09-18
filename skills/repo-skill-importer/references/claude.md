@@ -41,26 +41,35 @@ a same-named skill exists, run a recursive diff:
 diff -rq /mnt/skills/<location>/<skill-name> <extracted-repo>/skills/<skill-name>
 ```
 
-Summarize the result to the user in three buckets before packaging anything:
+Present a clear **Comparison result** to the user (preferably a table or
+structured list) with three buckets:
 
-- **Already available, identical** — skip packaging this one by default, mention it as FYI.
-- **Already available, but differs** — call out exactly which files differ
-  (e.g. a reference doc or a script) so the user can decide whether to
-  overwrite; skip packaging by default here too unless the user asks for it.
-- **Not available locally** — new to this environment; package these.
+- **Already available, identical** — mention as FYI; recommend skip.
+- **Already available, but differs** — list exactly which files differ and
+  briefly describe the changes so the user can decide; recommend skip by
+  default (to protect local customizations) but offer overwrite.
+- **Not available locally** — new to this environment; recommend package.
 
-> **Hint:** Don't import/package a skill that's already available locally
-> unless the user explicitly asks for it (e.g. "package it anyway", "give me
-> the repo version", "update it"). Silently repackaging something the user
-> already has adds clutter and risks overwriting a newer or customized local
-> version with an older repo one. Default to skipping duplicates and only
-> surfacing what's genuinely new — say what you skipped and why, so the user
-> can override if they actually want it.
+## 3. Ask before proceeding (mandatory interactive gate)
 
-## 3. Validate every skill
+**Stop after the Comparison result.** Do **not** package anything until the
+user explicitly confirms what to do.
 
-Before packaging, validate each folder so problems surface before the user
-tries to install:
+Ask a clear question, for example:
+
+> Comparison complete. How would you like to proceed?
+> - Package / overwrite the differing skill(s)?
+> - Package only the new skill(s)?
+> - Skip everything?
+> - Something else (please specify)?
+
+Wait for the user's answer. Never auto-package a differing skill without
+confirmation.
+
+## 4. Validate every skill the user approved
+
+Only after confirmation, validate each approved folder so problems surface
+before the user tries to install:
 
 ```bash
 python3 -m scripts.quick_validate <path-to-skill-folder>
@@ -70,22 +79,20 @@ Run this from the directory containing `scripts/` (see Prerequisites) so the
 relative import resolves. Report validation failures to the user rather than
 silently packaging a broken skill.
 
-## 4. Package only what's new (or explicitly requested)
+## 5. Package only what the user approved
 
-For each validated skill folder that is **not** already available locally
-(per step 2's bucketing), package it:
+For each validated skill folder the user approved (new **or** explicitly
+requested overwrite), package it:
 
 ```bash
 python3 -m scripts.package_skill <path-to-skill-folder>
 ```
 
 This produces a `<skill-name>.skill` file in the current directory. Loop
-through every *new* skill folder found in step 1 — don't stop at the first
-one unless the user only asked for one specific skill. Skip skills already
-available locally (identical or differing) unless the user explicitly asks
-you to package those too.
+through every approved skill — don't stop at the first one unless the user
+only asked for one specific skill.
 
-## 5. Deliver
+## 6. Deliver
 
 Copy every resulting `.skill` file into the outputs directory and present
 them all in a single `present_files` call so the user gets one batch of file
@@ -93,9 +100,9 @@ cards rather than one per skill. In the reply text (not repeated per file),
 flag again which ones differ from an already-installed version — that's the
 one thing the file cards themselves can't communicate.
 
-## 6. Note the install boundary
+## 7. Note the install boundary
 
 Be upfront that presenting a `.skill` file is as far as this goes — actually
 saving/installing it into the user's profile happens when *they* click the
 file card's Save action (where the org allows it), not automatically. This
-skill's job ends at "validated, packaged, and handed over".
+skill's job ends at "validated, packaged, and handed over."
