@@ -104,6 +104,20 @@ rather than a Shell/ad-hoc script: a full class extending a `*Stub` base class w
   directly into a Job Definition's script attribute that Redwood expects to compile as a
   class). Everything in this skill's references defaults to the bare-script shape instead.
 
+## Compiler and sandbox limits (confirmed on a live scheduler)
+
+Scripts run through the Redwood script compiler, which is stricter than a plain JDK:
+
+| Attempt                                   | Result                                                             | Instead                                                        |
+| :---------------------------------------- | :----------------------------------------------------------------- | :------------------------------------------------------------- |
+| Text block `""" ... """`                | `text blocks are not supported in -source 8`                       | `"line1 " + "line2 " + ...` then `split("[\\s,;]+")`          |
+| `var`, `String.repeat`, `isBlank`, `List.of` | Compile error (Java 8 source level)                              | Explicit types, a literal separator line, `trim().isEmpty()`, `Arrays.asList` |
+| `java.lang.reflect.*` (e.g. `getMethod`)  | `JCS-124008: Illegal attempt to access java.lang.reflect.Method outside a Library` | Look the method up with `lookup.py`; if unsure, call it directly and let the compiler's `cannot find symbol` name it |
+| Persistence-only entities (`*SourceLine`, `*ExtraLine`, `*JARCache`) | `cannot find symbol` | Use the parent object's own getter (e.g. `JobDefinitionAction.getSource()`) |
+
+The import checker runs on the compiled bytes, so a blocked class fails even when it is only
+used inside a `try`/`catch` fallback.
+
 ## Standard imports
 
 ```java

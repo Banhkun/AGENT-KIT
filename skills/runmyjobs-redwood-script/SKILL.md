@@ -38,7 +38,7 @@ exception here, not the default.
 
 ## Non-negotiable rules
 
-These four cause the majority of failures. Apply them to anything written, before consulting
+These five cause the majority of failures. Apply them to anything written, before consulting
 any reference.
 
 1. **Query the Object Model, never the database.** Use `jcsSession.executeObjectQuery(...)`
@@ -52,6 +52,12 @@ any reference.
 4. **Verify type strings, never infer them from names.** A job named `JSAP_XOE_011_...` has
    `getJobDefinitionType().getName()` of `"SAPR3"`. Print the real value for a sample object
    before filtering on it.
+5. **Write Java 8 and stay inside the sandbox.** Shell/ad-hoc scripts compile with `-source 8`
+   (confirmed on a live scheduler): no text blocks (`"""`), no `var`, no `String.repeat()`,
+   `isBlank()`, `List.of()`. Reflection (`java.lang.reflect.*`) is rejected at compile time with
+   `JCS-124008 ... outside a Library`, so never use it to probe for a method — check
+   `scripts/lookup.py` instead. A multi-line pasted input is written as `"a " + "b " + ...`
+   lines and split on whitespace.
 
 ## Routing
 
@@ -59,6 +65,7 @@ any reference.
 | :----------------------------------------------------------------------------------------------- | :--------------------------------------- |
 | Which globals exist (`jcsSession`, `jcsJob`, `jcsOut`); the bare-script vs. compiled-class shape | `references/runtime-and-shapes.md`       |
 | Choosing an entity, finding a getter, resolving an object by name or UniqueId                    | `scripts/lookup.py` (see `references/entities-and-lookup.md`) |
+| Reading, dumping, or deleting a JobDefinition's Pre/Post Running (or other) action script        | `references/job-definition-actions.md`   |
 | Writing a query: joins, status codes, time cutoffs, duplicate rows, bind parameters              | `references/object-queries.md`           |
 | Submitting jobs, setting parameters, building or traversing chains, Redwood tables               | `references/job-and-chain-operations.md` |
 | UC4 ↔ RMJ correlation, `UC4ExternalBusinessKey`, split objects, master vs branched               | `references/uc4-object-tags.md`          |
@@ -79,7 +86,9 @@ any reference.
 4. **Adapt the nearest example** from the matching reference rather than composing from
    scratch. Each reference holds one canonical, complete version of its patterns, already in
    the bare-script + local-class/lambda form.
-5. **Apply the four rules above** to whatever gets written.
+5. **Apply the five rules above** to whatever gets written. Anything destructive (delete,
+   bulk update) ships with a `DRY_RUN` switch defaulting to `true` — see
+   `references/job-definition-actions.md`.
 6. **When a query returns 0 rows or a filter misses,** consult
    `references/troubleshooting.md` before rewriting the logic — the cause is usually listed
    there, and it is usually an assumption about a string value that was never printed.
@@ -89,8 +98,8 @@ any reference.
 - Default to a bare `{ ... }` script. Use a local (non-static) class for reusable or recursive
   helper logic, and lambdas for short single-expression helpers. Reach for a compiled
   `*Stub`-extending class only when the target genuinely is a compiled Job Definition body.
-- Static members inside a local class require Java 16+. Unless the Redwood scheduler's JDK
-  version is known, use instance methods and let them capture `jcsSession`/`jcsOut` from the
+- Static members inside a local class require Java 16+, and Shell scripts compile at
+  `-source 8`, so use instance methods and let them capture `jcsSession`/`jcsOut` from the
   enclosing block instead of declaring them `static`.
 - Prefer bind parameters (`?` with an `Object[]`) over string concatenation whenever a value
   reaches the query from a Job Definition parameter or any caller-supplied source.

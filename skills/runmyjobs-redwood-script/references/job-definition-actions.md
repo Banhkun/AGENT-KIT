@@ -1,0 +1,96 @@
+# JobDefinition Actions (Post Running, Pre Running, On Change, ...)
+
+Read this when a task reads, dumps, compares, or deletes the script under a Job Definition's
+**Action** tab (Post Running is the common one).
+
+## What is confirmed
+
+| Need                                   | Call                                                                                   | Status |
+| :------------------------------------- | :------------------------------------------------------------------------------------- | :----- |
+| Get the action of one type (or `null`) | `jd.getJobDefinitionActionByType(JobDefinitionActionType.PostRunning)`                  | works on a live scheduler |
+| Read its script text                   | `action.getSource()` (a `String`, may be `null`)                                        | works on a live scheduler |
+| Which library it belongs to (or `null`) | `action.getLibrary()`                                                                  | works |
+| Delete it                              | `jcsSession.deleteObject(action);` then `persist()`                                     | from the transaction notes; not yet confirmed on a live run — always ship behind `DRY_RUN` |
+
+`JobDefinitionActionType` constants: `PreRunning`, `PostRunning`, `OnChange`,
+`OnUserMessageOperation`, `OnBeforeJobUserChange`, `OnJobFileContentAccess`.
+
+Do **not** read the script through `JobDefinitionActionSourceLine`. It is in the data model dump but
+scripts cannot import it (`cannot find symbol`), and reflection is blocked — see
+`runtime-and-shapes.md`, "Compiler and sandbox limits".
+
+## Resolving job definitions from a list of names
+
+Names are unique per partition, not globally, so look up by name across partitions and print
+the partition. The name query can hand back the **same object several times**, so dedupe by
+`UniqueId` before doing anything irreversible.
+
+```java
+Set<Long> seen = new HashSet<>();
+for (JobDefinition jd : jcsSession.executeObjectQuery(JobDefinition.TYPE, " where o.Name = ?", name)) {
+  if (!seen.add(jd.getUniqueId())) continue;
+  // process jd
+}
+```
+
+## Input pattern (Java 8, paste-friendly)
+
+No text blocks. One quoted line per name, joined with `+`, split on whitespace/commas, deduped
+in order:
+
+```java
+String input = ""
+  + "NAME_ONE "
+  + "NAME_TWO ";
+Set<String> names = new LinkedHashSet<>(Arrays.asList(input.trim().split("[\\s,;]+")));
+```
+
+## Dump the Post Running script
+
+```java
+import com.redwood.scheduler.api.model.*;
+import com.redwood.scheduler.api.model.enumeration.*;
+import com.redwood.scheduler.api.model.interfaces.*;
+import java.util.*;
+{
+  // ... input block from above ...
+  Set<Long> seen = new HashSet<>();
+  for (String name : names) {
+    for (JobDefinition jd : jcsSession.executeObjectQuery(JobDefinition.TYPE, " where o.Name = ?", name)) {
+      if (!seen.add(jd.getUniqueId())) continue;
+      String part = jd.getPartition() != null ? jd.getPartition().getName() : "?";
+      JobDefinitionAction a = jd.getJobDefinitionActionByType(JobDefinitionActionType.PostRunning);
+      jcsOut.println("== " + jd.getName() + " (partition: " + part + ")");
+      if (a == null) { jcsOut.println("(no Post Running action)"); continue; }
+      String src = a.getSource();
+      jcsOut.println(src != null ? src : "");
+    }
+  }
+}
+```
+
+## Delete the Post Running action (destructive)
+
+Every destructive script gets a `DRY_RUN` switch that defaults to `true`, reports what it
+would do, and prints a summary (deleted / would delete / no action / not found / failed).
+Persist per object and `reset()` on failure so one bad definition does not poison the rest.
+
+```java
+final boolean DRY_RUN = true;   // flip to false only after reading the dry-run output
+// ... for each de-duplicated jd:
+JobDefinitionAction a = jd.getJobDefinitionActionByType(JobDefinitionActionType.PostRunning);
+if (a == null) { /* count as "no action" */ }
+else if (DRY_RUN) { jcsOut.println("DRY RUN, would delete: " + jd.getName()); }
+else {
+  try {
+    jcsSession.deleteObject(a);
+    if (jcsSession.hasDirtyObjects()) jcsSession.persist();
+  } catch (Exception e) {
+    jcsSession.reset();
+    throw e;
+  }
+}
+```
+
+Deleting is not undoable from the script. Before a live run, dump the sources first (the section
+above) and keep the output as the backup, and tell the user that.

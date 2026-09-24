@@ -32,6 +32,16 @@ wrong guess (e.g. `getJobDefinitionByName` vs a guessed `findJobDefinitionByName
 `class` also lists every field with a `->` marker for reference-typed columns (see the
 Partition note below and `object-queries.md` rule 4 for why that matters in queries).
 
+Two limits of the dump to keep in mind:
+
+- It only records methods that **return another model class**. Plain getters and setters
+  (`getName`, `getSource`, `getLineText`, `isEnabled`) are not listed, so a getter missing from
+  `class <Entity>` is not proof it doesn't exist. Call it directly; the compiler's
+  `cannot find symbol` is the authority.
+- It contains persistence-layer entities that scripts cannot import (`JobDefinitionActionSourceLine`,
+  `*ExtraLine`, `*JARCache`). An entity showing up in `find` does not mean the class is usable in
+  a script — see `runtime-and-shapes.md`, "Compiler and sandbox limits".
+
 The model doesn't yet include the supertype hierarchy (Partition tree data wasn't part
 of this build), so `extends/implements` may print empty even for entities that do
 inherit fields — treat an empty result there as "not recorded," not "has no supertype."
