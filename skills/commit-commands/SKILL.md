@@ -6,12 +6,22 @@ description: >-
   CLI, and safely pruning stale [gone] branches and worktrees. Use when the user
   asks to commit changes, write a commit message, stage files, push changes, create
   a PR / pull request, clean up merged or deleted branches, or run git commit
-  commands.
+  commands. Prefer creating a pull request over direct pushes to main/master.
 ---
 
 # Commit Commands
 
 Automates git operations and enforces clean git practices, reducing manual context switching while ensuring security, consistent commit history, and tidy branch tracking.
+
+## Preferred delivery path: Pull Request (default)
+
+**Creating a pull request is always preferable** to committing or pushing directly to `main` / `master` / other protected default branches.
+
+- Default workflow for any change (skills, code, docs, config): **branch → commit → push → open PR**.
+- Direct push to `main` (e.g. via `github___push_files` or `git push origin main`) is allowed **only** when the user explicitly requests it.
+- This rule applies especially when updating skills in repositories such as `AGENT-KIT`.
+
+When using the GitHub connected tools, prefer the sequence that creates a feature branch + PR over a direct commit to `main`.
 
 ## Core Workflows
 
@@ -55,33 +65,34 @@ Drafts and creates a git commit adhering to repository style, ensuring no sensit
 
 ---
 
-### 2. Commit, Push, and Open PR (`commit-push-pr`)
+### 2. Commit, Push, and Open PR (`commit-push-pr`) — **preferred**
 
 Complete pipeline from local code changes to an open Pull Request on GitHub.
+This is the **default** path for delivering changes.
 
 #### Workflow Steps:
 1. **Branch Check & Creation**:
    - Check current branch: `git branch --show-current`
    - If on protected or default branch (`main`, `master`, `develop`):
-     - Prompt or create a descriptive feature branch:
-       ```powershell
+     - Always create a descriptive feature branch (do not commit directly):
+       ```bash
        git checkout -b feat/<short-description>
        ```
+       or `fix/…`, `chore/…`, `docs/…` as appropriate.
 
 2. **Stage & Commit**:
    - Follow the **Smart Commit** workflow above.
 
 3. **Push to Remote**:
    - Push branch and configure upstream tracking:
-     ```powershell
+     ```bash
      git push -u origin <branch-name>
      ```
 
-4. **Create Pull Request via GitHub CLI (`gh`)**:
-   - Check if `gh` is available: `gh --version`
-   - Create PR with structured title, summary, and verification plan:
-     ```powershell
-     gh pr create --title "<PR Title>" --body @"
+4. **Create Pull Request via GitHub CLI (`gh`) or connected tools**:
+   - Prefer `gh pr create` when available:
+     ```bash
+     gh pr create --title "<PR Title>" --body "$(cat <<'EOF'
      ## Summary
      - <Bullet 1>
      - <Bullet 2>
@@ -89,8 +100,10 @@ Complete pipeline from local code changes to an open Pull Request on GitHub.
      ## Verification & Testing
      - [x] <Verification item 1>
      - [ ] <Verification item 2>
-     "@
+     EOF
+     )"
      ```
+   - When using GitHub connected tools, create the branch + commit on the feature branch, then open a PR rather than writing directly to `main`.
    - Provide the generated PR URL to the user.
 
 ---
@@ -152,6 +165,7 @@ powershell -ExecutionPolicy Bypass -File .agents/skills/commit-commands/scripts/
 ---
 
 ## Best Practices & Safety Rules
+- **Prefer Pull Request** over direct push to `main`/`master`. Only direct-push when the user explicitly asks.
 - Always run `git status` and verify changes before executing a commit.
 - Never commit secrets, credentials, or transient runtime files.
 - Ensure worktrees are detached/removed before attempting `git branch -D` on a branch.
