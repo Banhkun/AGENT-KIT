@@ -15,6 +15,7 @@ Detect which environment you are running in and load the matching reference:
 
 | Environment signal | Load this reference | Delivery style |
 |--------------------|---------------------|----------------|
+| Antigravity IDE / Gemini (`.agents/skills/` in workspace or `~/.gemini/config/`) | `references/antigravity.md` | **Auto-install** into `.agents/skills/` |
 | `skill-installer` present under `/root/.grok/skills/` **or** paths like `/home/workdir/.grok/skills/` | `references/grok.md` | **Auto-install** into persistent user skills dir |
 | Claude / Anthropic-style paths (`/mnt/skills/...`) **or** `present_files` tooling | `references/claude.md` | **Package** as `.skill` files for the user to Save |
 | Unclear | Prefer `references/claude.md` (safer, no write to skill dirs) and mention both options |
