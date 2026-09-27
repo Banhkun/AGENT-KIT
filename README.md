@@ -20,6 +20,20 @@ All skills are located under [`skills/`](skills/):
 | [`skill-creator`](skills/skill-creator) | Tools and evaluation pipelines to create, benchmark, and optimize agent skills. |
 | [`skill-drive-upload`](skills/skill-drive-upload) | Packages and uploads skill bundles directly to Google Drive (`My Drive/.agent/skills`). |
 
+## Rules Directory
+
+All global rules and guardrails are located under [`rules/`](rules/):
+
+| Rule | Description |
+| :--- | :--- |
+| [`jupyter-notebook-workflow.md`](rules/jupyter-notebook-workflow.md) | Standard Jupytext pairing (`ipynb,py:percent`) workflow for safe agent notebook editing. |
+| [`powershell-execution.md`](rules/powershell-execution.md) | PowerShell execution rules, UTF-8 BOM encoding invariants, and sandbox isolation boundaries. |
+| [`python-windows-encoding.md`](rules/python-windows-encoding.md) | Python UTF-8 streams, PEP 540 `-X utf8` flag, and Windows character encoding standards. |
+| [`git-automation.md`](rules/git-automation.md) | Conventional commits, automatic staging, secret scanning, and branch workflows. |
+| [`command-purpose.md`](rules/command-purpose.md) | Terminal execution safety, command clarity, and operational invariants. |
+| [`colab-gpu-workflow.md`](rules/colab-gpu-workflow.md) | Remote Colab GPU orchestration, FastAPI controller lifecycle, and asset pipelines. |
+| [`colab-execution-policy.md`](rules/colab-execution-policy.md) | Security policy for remote Colab code execution endpoints. |
+
 ## License & Attribution
 
 This project is licensed under the **Apache License, Version 2.0** - see the [`LICENSE`](LICENSE) file for details.
