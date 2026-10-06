@@ -107,6 +107,7 @@ Reusable agent skills placed in `<workspace>/.agents/skills/`:
 | [`runmyjobs-redwood-script`](skills/runmyjobs-redwood-script) | Guidance and recipes for Java (RedwoodScript) interactions with RunMyJobs objects, sessions, and UC4 `ObjectTag` mappings. |
 | [`skill-creator`](skills/skill-creator) | Tools and evaluation pipelines to create, benchmark, and optimize agent skills. |
 | [`skill-drive-upload`](skills/skill-drive-upload) | Packages and uploads skill bundles directly to Google Drive (`My Drive/.agent/skills`). |
+| [`teams-agent-converter`](skills/teams-agent-converter) | Converts the Redwood query/script skills into the flat all-`.txt` monolith (instruction, START_HERE routers, guides, programs) for standalone agents, with a built-in verifier. |
 | [`typography-scale`](skills/typography-scale) | Modular typographic scales, line heights, and hierarchy weights. |
 | [`uc4-standalone-python`](skills/uc4-standalone-python) | Standalone Python automation, REST interaction, and job control for Automic/UC4. |
 | [`visual-hierarchy`](skills/visual-hierarchy) | Establishes visual entry points and importance ordering through scale, weight, and contrast. |
